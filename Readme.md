@@ -34,7 +34,7 @@ docker run \
     --name smtp_to_telegram \
     -e ST_TELEGRAM_CHAT_IDS=<CHAT_ID1>,<CHAT_ID2> \
     -e ST_TELEGRAM_BOT_TOKEN=<BOT_TOKEN> \
-     ghcr.io/charleshuang3/smtp_to_telegram:main
+     ghcr.io/charleshuang3/smtp_to_telegram:lastest
 ```
 
 Assuming that your Email-sending software is running in docker as well,
@@ -55,7 +55,7 @@ docker run \
     -e ST_TELEGRAM_CHAT_IDS=<CHAT_ID1>,<CHAT_ID2> \
     -e ST_TELEGRAM_BOT_TOKEN=<BOT_TOKEN> \
     -e ST_TELEGRAM_MESSAGE_TEMPLATE="Subject: {subject}\\n\\n{body}" \
-    ghcr.io/charleshuang3/smtp_to_telegram:main
+    ghcr.io/charleshuang3/smtp_to_telegram:lastest
 ```
 
 You can also use `smtp_to_telegram:2526` to send message to telegram via http.
