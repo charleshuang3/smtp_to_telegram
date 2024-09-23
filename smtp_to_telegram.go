@@ -2,12 +2,14 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"mime"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -22,6 +24,7 @@ import (
 	"github.com/flashmob/go-guerrilla/backends"
 	"github.com/flashmob/go-guerrilla/log"
 	"github.com/flashmob/go-guerrilla/mail"
+	"github.com/go-chi/chi/v5"
 	"github.com/jhillyerd/enmime"
 	"github.com/urfave/cli/v2"
 )
@@ -35,7 +38,8 @@ const (
 	BodyTruncated = "\n\n[truncated]"
 )
 
-type SmtpConfig struct {
+type HostConfig struct {
+	httpListen          string
 	smtpListen          string
 	smtpPrimaryHost     string
 	smtpMaxEnvelopeSize int64
@@ -100,7 +104,8 @@ func main() {
 			fmt.Printf("%s\n", err)
 			os.Exit(1)
 		}
-		smtpConfig := &SmtpConfig{
+		hostConfig := &HostConfig{
+			httpListen:          c.String("http-listen"),
 			smtpListen:          c.String("smtp-listen"),
 			smtpPrimaryHost:     c.String("smtp-primary-host"),
 			smtpMaxEnvelopeSize: smtpMaxEnvelopeSize,
@@ -126,14 +131,21 @@ func main() {
 			forwardedAttachmentRespectErrors: c.Bool("forwarded-attachment-respect-errors"),
 			messageLengthToSendAsFile:        c.Uint("message-length-to-send-as-file"),
 		}
-		d, err := SmtpStart(smtpConfig, telegramConfig)
+		d, err := SmtpStart(hostConfig, telegramConfig)
 		if err != nil {
 			panic(fmt.Sprintf("start error: %s", err))
 		}
-		sigHandler(d)
+		httpServer := StartHTTPServer(hostConfig, telegramConfig)
+		sigHandler(d, httpServer)
 		return nil
 	}
 	app.Flags = []cli.Flag{
+		&cli.StringFlag{
+			Name:    "http-listen",
+			Value:   "127.0.0.1:8080",
+			Usage:   "HTTP: HTTP address to listen to",
+			EnvVars: []string{"ST_HTTP_LISTEN"},
+		},
 		&cli.StringFlag{
 			Name:    "smtp-listen",
 			Value:   "127.0.0.1:2525",
@@ -223,7 +235,7 @@ func main() {
 }
 
 func SmtpStart(
-	smtpConfig *SmtpConfig, telegramConfig *TelegramConfig) (guerrilla.Daemon, error) {
+	smtpConfig *HostConfig, telegramConfig *TelegramConfig) (guerrilla.Daemon, error) {
 
 	cfg := &guerrilla.AppConfig{LogFile: log.OutputStdout.String()}
 
@@ -642,7 +654,58 @@ func panicIfError(err error) {
 	}
 }
 
-func sigHandler(d guerrilla.Daemon) {
+func StartHTTPServer(c *HostConfig, tc *TelegramConfig) *http.Server {
+	router := chi.NewRouter()
+	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		subject := q.Get("subject")
+		body := q.Get("body")
+
+		if subject == "" || body == "" {
+			http.Error(w, "subject and body are required", http.StatusBadRequest)
+			return
+		}
+
+		fullMessageText, truncatedMessageText := FormatMessage(
+			"", "", subject, body, "", tc,
+		)
+
+		text := fullMessageText
+		if truncatedMessageText != "" {
+			text = truncatedMessageText
+		}
+
+		client := http.Client{
+			Timeout: time.Duration(tc.telegramApiTimeoutSeconds*1000) * time.Millisecond,
+		}
+		for _, chatId := range strings.Split(tc.telegramChatIds, ",") {
+			SendMessageToChat(&FormattedEmail{
+				text: text,
+			}, chatId, tc, &client)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	})
+
+	server := &http.Server{
+		Addr:    c.httpListen,
+		Handler: router,
+	}
+	ln, err := net.Listen("tcp", server.Addr)
+	if err != nil {
+		panic(err)
+	}
+
+	go func() {
+		if err := server.Serve(ln); err != nil && err != http.ErrServerClosed {
+			logger.Fatalf("Serve(): %v", err)
+		}
+	}()
+
+	return server
+}
+
+func sigHandler(d guerrilla.Daemon, httpServer *http.Server) {
 	signalChannel := make(chan os.Signal, 1)
 
 	signal.Notify(signalChannel,
@@ -663,6 +726,7 @@ func sigHandler(d guerrilla.Daemon) {
 			}
 		}()
 		d.Shutdown()
+		httpServer.Shutdown(context.Background())
 		logger.Info("Shutdown completed, exiting.")
 		return
 	}

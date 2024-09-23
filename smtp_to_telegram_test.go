@@ -14,17 +14,20 @@ import (
 
 	"github.com/flashmob/go-guerrilla"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/gomail.v2"
 )
 
 var (
-	testSmtpListenHost   = "127.0.0.1"
-	testSmtpListenPort   = 22725
-	testHttpServerListen = "127.0.0.1:22780"
+	testSmtpListenHost       = "127.0.0.1"
+	testSmtpListenPort       = 22725
+	testHTTPListenPort       = 22726
+	fakeTelegramServerListen = "127.0.0.1:22780"
 )
 
-func makeSmtpConfig() *SmtpConfig {
-	return &SmtpConfig{
+func makeHostConfig() *HostConfig {
+	return &HostConfig{
+		httpListen:      fmt.Sprintf("%s:%d", testSmtpListenHost, testHTTPListenPort),
 		smtpListen:      fmt.Sprintf("%s:%d", testSmtpListenHost, testSmtpListenPort),
 		smtpPrimaryHost: "testhost",
 	}
@@ -34,7 +37,7 @@ func makeTelegramConfig() *TelegramConfig {
 	return &TelegramConfig{
 		telegramChatIds:                  "42,142",
 		telegramBotToken:                 "42:ZZZ",
-		telegramApiPrefix:                "http://" + testHttpServerListen + "/",
+		telegramApiPrefix:                "http://" + fakeTelegramServerListen + "/",
 		messageTemplate:                  "From: {from}\\nTo: {to}\\nSubject: {subject}\\n\\n{body}\\n\\n{attachments_details}",
 		forwardedAttachmentMaxSize:       0,
 		forwardedAttachmentMaxPhotoSize:  0,
@@ -43,7 +46,7 @@ func makeTelegramConfig() *TelegramConfig {
 	}
 }
 
-func startSmtp(smtpConfig *SmtpConfig, telegramConfig *TelegramConfig) guerrilla.Daemon {
+func startSmtp(smtpConfig *HostConfig, telegramConfig *TelegramConfig) guerrilla.Daemon {
 	d, err := SmtpStart(smtpConfig, telegramConfig)
 	if err != nil {
 		panic(fmt.Sprintf("start error: %s", err))
@@ -71,13 +74,13 @@ func goMailBody(content []byte) gomail.FileSetting {
 }
 
 func TestSuccess(t *testing.T) {
-	smtpConfig := makeSmtpConfig()
+	smtpConfig := makeHostConfig()
 	telegramConfig := makeTelegramConfig()
 	d := startSmtp(smtpConfig, telegramConfig)
 	defer d.Shutdown()
 
 	h := NewSuccessHandler()
-	s := HttpServer(h)
+	s := StartFakeTelegramServer(h)
 	defer s.Shutdown(context.Background())
 
 	err := smtp.SendMail(smtpConfig.smtpListen, nil, "from@test", []string{"to@test"}, []byte(`hi`))
@@ -95,7 +98,7 @@ func TestSuccess(t *testing.T) {
 }
 
 func TestSuccessCustomFormat(t *testing.T) {
-	smtpConfig := makeSmtpConfig()
+	smtpConfig := makeHostConfig()
 	telegramConfig := makeTelegramConfig()
 	telegramConfig.messageTemplate =
 		"Subject: {subject}\\n\\n{body}"
@@ -103,7 +106,7 @@ func TestSuccessCustomFormat(t *testing.T) {
 	defer d.Shutdown()
 
 	h := NewSuccessHandler()
-	s := HttpServer(h)
+	s := StartFakeTelegramServer(h)
 	defer s.Shutdown(context.Background())
 
 	err := smtp.SendMail(smtpConfig.smtpListen, nil, "from@test", []string{"to@test"}, []byte(`hi`))
@@ -118,7 +121,7 @@ func TestSuccessCustomFormat(t *testing.T) {
 }
 
 func TestTelegramUnreachable(t *testing.T) {
-	smtpConfig := makeSmtpConfig()
+	smtpConfig := makeHostConfig()
 	telegramConfig := makeTelegramConfig()
 	d := startSmtp(smtpConfig, telegramConfig)
 	defer d.Shutdown()
@@ -128,12 +131,12 @@ func TestTelegramUnreachable(t *testing.T) {
 }
 
 func TestTelegramHttpError(t *testing.T) {
-	smtpConfig := makeSmtpConfig()
+	smtpConfig := makeHostConfig()
 	telegramConfig := makeTelegramConfig()
 	d := startSmtp(smtpConfig, telegramConfig)
 	defer d.Shutdown()
 
-	s := HttpServer(&ErrorHandler{})
+	s := StartFakeTelegramServer(&ErrorHandler{})
 	defer s.Shutdown(context.Background())
 
 	err := smtp.SendMail(smtpConfig.smtpListen, nil, "from@test", []string{"to@test"}, []byte(`hi`))
@@ -141,13 +144,13 @@ func TestTelegramHttpError(t *testing.T) {
 }
 
 func TestEncodedContent(t *testing.T) {
-	smtpConfig := makeSmtpConfig()
+	smtpConfig := makeHostConfig()
 	telegramConfig := makeTelegramConfig()
 	d := startSmtp(smtpConfig, telegramConfig)
 	defer d.Shutdown()
 
 	h := NewSuccessHandler()
-	s := HttpServer(h)
+	s := StartFakeTelegramServer(h)
 	defer s.Shutdown(context.Background())
 
 	b := []byte(
@@ -170,13 +173,13 @@ func TestEncodedContent(t *testing.T) {
 }
 
 func TestHtmlAttachmentIsIgnored(t *testing.T) {
-	smtpConfig := makeSmtpConfig()
+	smtpConfig := makeHostConfig()
 	telegramConfig := makeTelegramConfig()
 	d := startSmtp(smtpConfig, telegramConfig)
 	defer d.Shutdown()
 
 	h := NewSuccessHandler()
-	s := HttpServer(h)
+	s := StartFakeTelegramServer(h)
 	defer s.Shutdown(context.Background())
 
 	m := gomail.NewMessage()
@@ -201,13 +204,13 @@ func TestHtmlAttachmentIsIgnored(t *testing.T) {
 }
 
 func TestAttachmentsDetails(t *testing.T) {
-	smtpConfig := makeSmtpConfig()
+	smtpConfig := makeHostConfig()
 	telegramConfig := makeTelegramConfig()
 	d := startSmtp(smtpConfig, telegramConfig)
 	defer d.Shutdown()
 
 	h := NewSuccessHandler()
-	s := HttpServer(h)
+	s := StartFakeTelegramServer(h)
 	defer s.Shutdown(context.Background())
 
 	m := gomail.NewMessage()
@@ -244,7 +247,7 @@ func TestAttachmentsDetails(t *testing.T) {
 }
 
 func TestAttachmentsSending(t *testing.T) {
-	smtpConfig := makeSmtpConfig()
+	smtpConfig := makeHostConfig()
 	telegramConfig := makeTelegramConfig()
 	telegramConfig.forwardedAttachmentMaxSize = 1024
 	telegramConfig.forwardedAttachmentMaxPhotoSize = 1024
@@ -252,7 +255,7 @@ func TestAttachmentsSending(t *testing.T) {
 	defer d.Shutdown()
 
 	h := NewSuccessHandler()
-	s := HttpServer(h)
+	s := StartFakeTelegramServer(h)
 	defer s.Shutdown(context.Background())
 
 	m := gomail.NewMessage()
@@ -313,7 +316,7 @@ func TestAttachmentsSending(t *testing.T) {
 }
 
 func TestLargeMessageAggressivelyTruncated(t *testing.T) {
-	smtpConfig := makeSmtpConfig()
+	smtpConfig := makeHostConfig()
 	telegramConfig := makeTelegramConfig()
 	telegramConfig.messageLengthToSendAsFile = 12
 	telegramConfig.forwardedAttachmentMaxSize = 1024
@@ -322,7 +325,7 @@ func TestLargeMessageAggressivelyTruncated(t *testing.T) {
 	defer d.Shutdown()
 
 	h := NewSuccessHandler()
-	s := HttpServer(h)
+	s := StartFakeTelegramServer(h)
 	defer s.Shutdown(context.Background())
 
 	m := gomail.NewMessage()
@@ -362,7 +365,7 @@ func TestLargeMessageAggressivelyTruncated(t *testing.T) {
 }
 
 func TestLargeMessageProperlyTruncated(t *testing.T) {
-	smtpConfig := makeSmtpConfig()
+	smtpConfig := makeHostConfig()
 	telegramConfig := makeTelegramConfig()
 	telegramConfig.messageLengthToSendAsFile = 100
 	telegramConfig.forwardedAttachmentMaxSize = 1024
@@ -371,7 +374,7 @@ func TestLargeMessageProperlyTruncated(t *testing.T) {
 	defer d.Shutdown()
 
 	h := NewSuccessHandler()
-	s := HttpServer(h)
+	s := StartFakeTelegramServer(h)
 	defer s.Shutdown(context.Background())
 
 	m := gomail.NewMessage()
@@ -417,7 +420,7 @@ func TestLargeMessageProperlyTruncated(t *testing.T) {
 }
 
 func TestLargeMessageWithAttachmentsProperlyTruncated(t *testing.T) {
-	smtpConfig := makeSmtpConfig()
+	smtpConfig := makeHostConfig()
 	telegramConfig := makeTelegramConfig()
 	telegramConfig.messageLengthToSendAsFile = 150
 	telegramConfig.forwardedAttachmentMaxSize = 1024
@@ -426,7 +429,7 @@ func TestLargeMessageWithAttachmentsProperlyTruncated(t *testing.T) {
 	defer d.Shutdown()
 
 	h := NewSuccessHandler()
-	s := HttpServer(h)
+	s := StartFakeTelegramServer(h)
 	defer s.Shutdown(context.Background())
 
 	m := gomail.NewMessage()
@@ -486,7 +489,7 @@ func TestLargeMessageWithAttachmentsProperlyTruncated(t *testing.T) {
 }
 
 func TestMuttMessagePlaintextParsing(t *testing.T) {
-	smtpConfig := makeSmtpConfig()
+	smtpConfig := makeHostConfig()
 	telegramConfig := makeTelegramConfig()
 	telegramConfig.forwardedAttachmentMaxSize = 1024
 	telegramConfig.forwardedAttachmentMaxPhotoSize = 1024
@@ -494,7 +497,7 @@ func TestMuttMessagePlaintextParsing(t *testing.T) {
 	defer d.Shutdown()
 
 	h := NewSuccessHandler()
-	s := HttpServer(h)
+	s := StartFakeTelegramServer(h)
 	defer s.Shutdown(context.Background())
 
 	// date | mutt -s "test" -a ./tt -- to@test
@@ -562,7 +565,7 @@ hoho
 }
 
 func TestMailxMessagePlaintextParsing(t *testing.T) {
-	smtpConfig := makeSmtpConfig()
+	smtpConfig := makeHostConfig()
 	telegramConfig := makeTelegramConfig()
 	telegramConfig.forwardedAttachmentMaxSize = 1024
 	telegramConfig.forwardedAttachmentMaxPhotoSize = 1024
@@ -570,7 +573,7 @@ func TestMailxMessagePlaintextParsing(t *testing.T) {
 	defer d.Shutdown()
 
 	h := NewSuccessHandler()
-	s := HttpServer(h)
+	s := StartFakeTelegramServer(h)
 	defer s.Shutdown(context.Background())
 
 	// date | mail -A ./tt -s "test" to@test
@@ -639,13 +642,13 @@ aG9obwo=
 }
 
 func TestLatin1Encoding(t *testing.T) {
-	smtpConfig := makeSmtpConfig()
+	smtpConfig := makeHostConfig()
 	telegramConfig := makeTelegramConfig()
 	d := startSmtp(smtpConfig, telegramConfig)
 	defer d.Shutdown()
 
 	h := NewSuccessHandler()
-	s := HttpServer(h)
+	s := StartFakeTelegramServer(h)
 	defer s.Shutdown(context.Background())
 
 	// https://github.com/KostyaEsmukov/smtp_to_telegram/issues/24#issuecomment-980684254
@@ -672,8 +675,41 @@ QW5uYS1W6XJvbmlxdWUK
 	assert.Equal(t, exp, h.RequestMessages[0])
 }
 
-func HttpServer(handler http.Handler) *http.Server {
-	h := &http.Server{Addr: testHttpServerListen, Handler: handler}
+func TestHTTTPRequest(t *testing.T) {
+	hostConfig := makeHostConfig()
+	telegramConfig := makeTelegramConfig()
+	d := StartHTTPServer(hostConfig, telegramConfig)
+	defer d.Shutdown(context.Background())
+
+	// TODO: wait for http server to start, should use a gracful way to start
+	// http server.
+	// time.Sleep(time.Millisecond * 100)
+
+	h := NewSuccessHandler()
+	s := StartFakeTelegramServer(h)
+	defer s.Shutdown(context.Background())
+
+	u := fmt.Sprintf("http://%s?subject=sub&body=body", hostConfig.httpListen)
+
+	r, err := http.NewRequest(http.MethodGet, u, nil)
+	require.NoError(t, err)
+
+	resp, err := http.DefaultClient.Do(r)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Len(t, h.RequestMessages, len(strings.Split(telegramConfig.telegramChatIds, ",")))
+	exp :=
+		"From: \n" +
+			"To: \n" +
+			"Subject: sub\n" +
+			"\n" +
+			"body"
+	assert.Equal(t, exp, h.RequestMessages[0])
+}
+
+func StartFakeTelegramServer(handler http.Handler) *http.Server {
+	h := &http.Server{Addr: fakeTelegramServerListen, Handler: handler}
 	ln, err := net.Listen("tcp", h.Addr)
 	if err != nil {
 		panic(err)

@@ -5,6 +5,7 @@ go 1.23
 require (
 	github.com/docker/go-units v0.5.0
 	github.com/flashmob/go-guerrilla v1.6.1
+	github.com/go-chi/chi/v5 v5.1.0
 	github.com/jhillyerd/enmime v1.3.0
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.27.4
