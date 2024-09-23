@@ -13,3 +13,4 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
       - run: go test ./...
+      - uses: creekorful/goreportcard-action@v1.0
