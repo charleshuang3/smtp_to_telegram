@@ -4,9 +4,9 @@ go 1.23
 
 require (
 	github.com/docker/go-units v0.5.0
-	github.com/flashmob/go-guerrilla v1.6.1
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/jhillyerd/enmime v1.3.0
+	github.com/phires/go-guerrilla v1.6.6
 	github.com/stretchr/testify v1.9.0
 	github.com/urfave/cli/v2 v2.27.4
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
@@ -17,7 +17,6 @@ require (
 	github.com/cention-sany/utf7 v0.0.0-20170124080048-26cad61bd60a // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f // indirect
 	github.com/jaytaylor/html2text v0.0.0-20230321000545-74c2419ad056 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect

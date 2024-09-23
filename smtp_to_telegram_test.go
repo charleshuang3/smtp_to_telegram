@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/flashmob/go-guerrilla"
+	"github.com/phires/go-guerrilla"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/gomail.v2"

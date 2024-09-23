@@ -20,12 +20,12 @@ import (
 	"time"
 
 	units "github.com/docker/go-units"
-	"github.com/flashmob/go-guerrilla"
-	"github.com/flashmob/go-guerrilla/backends"
-	"github.com/flashmob/go-guerrilla/log"
-	"github.com/flashmob/go-guerrilla/mail"
 	"github.com/go-chi/chi/v5"
 	"github.com/jhillyerd/enmime"
+	"github.com/phires/go-guerrilla"
+	"github.com/phires/go-guerrilla/backends"
+	"github.com/phires/go-guerrilla/log"
+	"github.com/phires/go-guerrilla/mail"
 	"github.com/urfave/cli/v2"
 )
 
