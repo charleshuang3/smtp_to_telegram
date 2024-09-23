@@ -1,6 +1,6 @@
 module github.com/charleshuang3/smtp_to_telegram
 
-go 1.23
+go 1.23.1
 
 require (
 	github.com/docker/go-units v0.5.0
