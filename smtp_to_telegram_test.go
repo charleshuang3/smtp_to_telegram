@@ -186,7 +186,7 @@ func TestHtmlAttachmentIsIgnored(t *testing.T) {
 	m.SetBody("text/plain", "Text body")
 	m.AddAlternative("text/html", "<p>HTML body</p>")
 
-	di := gomail.NewPlainDialer(testSmtpListenHost, testSmtpListenPort, "", "")
+	di := gomail.NewDialer(testSmtpListenHost, testSmtpListenPort, "", "")
 	err := di.DialAndSend(m)
 	assert.NoError(t, err)
 
@@ -223,7 +223,7 @@ func TestAttachmentsDetails(t *testing.T) {
 	// attachment image
 	m.Attach("attachment.jpg", goMailBody([]byte("JPG")))
 
-	di := gomail.NewPlainDialer(testSmtpListenHost, testSmtpListenPort, "", "")
+	di := gomail.NewDialer(testSmtpListenHost, testSmtpListenPort, "", "")
 	err := di.DialAndSend(m)
 	assert.NoError(t, err)
 
@@ -289,7 +289,7 @@ func TestAttachmentsSending(t *testing.T) {
 		},
 	}
 
-	di := gomail.NewPlainDialer(testSmtpListenHost, testSmtpListenPort, "", "")
+	di := gomail.NewDialer(testSmtpListenHost, testSmtpListenPort, "", "")
 	err := di.DialAndSend(m)
 	assert.NoError(t, err)
 
@@ -346,7 +346,7 @@ func TestLargeMessageAggressivelyTruncated(t *testing.T) {
 		},
 	}
 
-	di := gomail.NewPlainDialer(testSmtpListenHost, testSmtpListenPort, "", "")
+	di := gomail.NewDialer(testSmtpListenHost, testSmtpListenPort, "", "")
 	err := di.DialAndSend(m)
 	assert.NoError(t, err)
 
@@ -395,7 +395,7 @@ func TestLargeMessageProperlyTruncated(t *testing.T) {
 		},
 	}
 
-	di := gomail.NewPlainDialer(testSmtpListenHost, testSmtpListenPort, "", "")
+	di := gomail.NewDialer(testSmtpListenHost, testSmtpListenPort, "", "")
 	err := di.DialAndSend(m)
 	assert.NoError(t, err)
 
@@ -461,7 +461,7 @@ func TestLargeMessageWithAttachmentsProperlyTruncated(t *testing.T) {
 		},
 	}
 
-	di := gomail.NewPlainDialer(testSmtpListenHost, testSmtpListenPort, "", "")
+	di := gomail.NewDialer(testSmtpListenHost, testSmtpListenPort, "", "")
 	err := di.DialAndSend(m)
 	assert.NoError(t, err)
 
@@ -537,7 +537,7 @@ hoho
 		},
 	}
 
-	di := gomail.NewPlainDialer(testSmtpListenHost, testSmtpListenPort, "", "")
+	di := gomail.NewDialer(testSmtpListenHost, testSmtpListenPort, "", "")
 	ds, err := di.Dial()
 	assert.NoError(t, err)
 	defer ds.Close()
@@ -614,7 +614,7 @@ aG9obwo=
 		},
 	}
 
-	di := gomail.NewPlainDialer(testSmtpListenHost, testSmtpListenPort, "", "")
+	di := gomail.NewDialer(testSmtpListenHost, testSmtpListenPort, "", "")
 	ds, err := di.Dial()
 	assert.NoError(t, err)
 	defer ds.Close()
