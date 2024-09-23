@@ -347,23 +347,23 @@ func SendMessageToChat(
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, errors.New(fmt.Sprintf(
+		return nil, fmt.Errorf(
 			"Non-200 response from Telegram: (%d) %s",
 			resp.StatusCode,
 			EscapeMultiLine(body),
-		))
+		)
 	}
 
 	j, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("Error reading json body of sendMessage: %v", err)
+		return nil, fmt.Errorf("error reading json body of sendMessage: %v", err)
 	}
 	result := &TelegramAPIMessageResult{}
 	err = json.Unmarshal(j, result)
 	if err != nil {
-		return nil, fmt.Errorf("Error parsing json body of sendMessage: %v", err)
+		return nil, fmt.Errorf("error parsing json body of sendMessage: %v", err)
 	}
-	if result.Ok != true {
+	if !result.Ok {
 		return nil, fmt.Errorf("ok != true: %s", j)
 	}
 	return result.Result, nil
@@ -384,7 +384,7 @@ func SendAttachmentToChat(
 		// https://core.telegram.org/bots/api#senddocument
 		method = "sendDocument"
 		panicIfError(w.WriteField("chat_id", chatId))
-		panicIfError(w.WriteField("reply_to_message_id", fmt.Sprintf("%s", sentMessage.MessageId)))
+		panicIfError(w.WriteField("reply_to_message_id", sentMessage.MessageId.String()))
 		panicIfError(w.WriteField("caption", attachment.caption))
 		// TODO maybe reuse files sent to multiple chats via file_id?
 		dw, err := w.CreateFormFile("document", attachment.filename)
@@ -395,7 +395,7 @@ func SendAttachmentToChat(
 		// https://core.telegram.org/bots/api#sendphoto
 		method = "sendPhoto"
 		panicIfError(w.WriteField("chat_id", chatId))
-		panicIfError(w.WriteField("reply_to_message_id", fmt.Sprintf("%s", sentMessage.MessageId)))
+		panicIfError(w.WriteField("reply_to_message_id", sentMessage.MessageId.String()))
 		panicIfError(w.WriteField("caption", attachment.caption))
 		// TODO maybe reuse files sent to multiple chats via file_id?
 		dw, err := w.CreateFormFile("photo", attachment.filename)
@@ -403,7 +403,7 @@ func SendAttachmentToChat(
 		_, err = dw.Write(attachment.content)
 		panicIfError(err)
 	} else {
-		panic(fmt.Errorf("Unknown file type %d", attachment.fileType))
+		panic(fmt.Errorf("unknown file type %d", attachment.fileType))
 	}
 	w.Close()
 
@@ -423,11 +423,11 @@ func SendAttachmentToChat(
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		body, _ := io.ReadAll(resp.Body)
-		return errors.New(fmt.Sprintf(
-			"Non-200 response from Telegram: (%d) %s",
+		return fmt.Errorf(
+			"non-200 response from Telegram: (%d) %s",
 			resp.StatusCode,
 			EscapeMultiLine(body),
-		))
+		)
 	}
 	return nil
 }
@@ -445,7 +445,7 @@ func FormatEmail(e *mail.Envelope, telegramConfig *TelegramConfig) (*FormattedEm
 
 	doParts := func(emoji string, parts []*enmime.Part) {
 		for _, part := range parts {
-			if bytes.Compare(part.Content, []byte(env.Text)) == 0 {
+			if bytes.Equal(part.Content, []byte(env.Text)) {
 				continue
 			}
 			if text == "" && part.ContentType == "text/plain" && part.FileName == "" {
@@ -527,7 +527,7 @@ func FormatEmail(e *mail.Envelope, telegramConfig *TelegramConfig) (*FormattedEm
 	} else {
 		if len(fullMessageText) > telegramConfig.forwardedAttachmentMaxSize {
 			return nil, fmt.Errorf(
-				"The message length (%d) is larger than `forwarded-attachment-max-size` (%d)",
+				"the message length (%d) is larger than `forwarded-attachment-max-size` (%d)",
 				len(fullMessageText),
 				telegramConfig.forwardedAttachmentMaxSize,
 			)
@@ -597,7 +597,7 @@ func FormatMessage(
 		).Replace(telegramConfig.messageTemplate),
 	)
 	if uint(len([]rune(truncatedMessageText))) > telegramConfig.messageLengthToSendAsFile {
-		panic(fmt.Errorf("Unexpected length of truncated message:\n%d\n%s",
+		panic(fmt.Errorf("unexpected length of truncated message:\n%d\n%s",
 			maxBodyLength, truncatedMessageText))
 	}
 	return fullMessageText, truncatedMessageText
@@ -712,18 +712,14 @@ func sigHandler(d guerrilla.Daemon, httpServer *http.Server) {
 		syscall.SIGTERM,
 		syscall.SIGQUIT,
 		syscall.SIGINT,
-		syscall.SIGKILL,
-		os.Kill,
 	)
 	for range signalChannel {
 		logger.Info("Shutdown signal caught")
 		go func() {
-			select {
 			// exit if graceful shutdown not finished in 60 sec.
-			case <-time.After(time.Second * 60):
-				logger.Error("graceful shutdown timed out")
-				os.Exit(1)
-			}
+			time.After(time.Second * 60)
+			logger.Error("graceful shutdown timed out")
+			os.Exit(1)
 		}()
 		d.Shutdown()
 		httpServer.Shutdown(context.Background())
