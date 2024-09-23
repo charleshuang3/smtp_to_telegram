@@ -142,7 +142,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
 			Name:    "http-listen",
-			Value:   "127.0.0.1:8080",
+			Value:   "127.0.0.1:2526",
 			Usage:   "HTTP: HTTP address to listen to",
 			EnvVars: []string{"ST_HTTP_LISTEN"},
 		},
