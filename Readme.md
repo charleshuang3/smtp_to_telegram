@@ -1,5 +1,10 @@
 # SMTP to Telegram
 
+This is hard fork from [KostyaEsmukov/smtp_to_telegram](https://github.com/KostyaEsmukov/smtp_to_telegram).
+
+Great Thanks to KostyaEsmukov. I fork this project because I need to add feature to also want to start a local http
+server to send message to telegarm so that I don't need to install 2 container for telegram notification.
+
 [![Docker Hub](https://img.shields.io/docker/pulls/kostyaesmukov/smtp_to_telegram.svg?style=flat-square)][Docker Hub]
 [![Go Report Card](https://goreportcard.com/badge/github.com/KostyaEsmukov/smtp_to_telegram?style=flat-square)][Go Report Card]
 [![License](https://img.shields.io/github/license/KostyaEsmukov/smtp_to_telegram.svg?style=flat-square)][License]
