@@ -12,5 +12,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
+      # go test
       - run: go test ./...
+      # update go report card
       - uses: creekorful/goreportcard-action@v1.0
