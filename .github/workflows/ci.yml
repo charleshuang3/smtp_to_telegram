@@ -1,5 +1,5 @@
+name: Go Test
 on: [push]
-name: Test
 jobs:
   test:
     strategy:
