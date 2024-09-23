@@ -5,14 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	units "github.com/docker/go-units"
-	"github.com/flashmob/go-guerrilla"
-	"github.com/flashmob/go-guerrilla/backends"
-	"github.com/flashmob/go-guerrilla/log"
-	"github.com/flashmob/go-guerrilla/mail"
-	"github.com/jhillyerd/enmime"
-	"github.com/urfave/cli/v2"
-	"io/ioutil"
+	"io"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -23,6 +16,14 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	units "github.com/docker/go-units"
+	"github.com/flashmob/go-guerrilla"
+	"github.com/flashmob/go-guerrilla/backends"
+	"github.com/flashmob/go-guerrilla/log"
+	"github.com/flashmob/go-guerrilla/mail"
+	"github.com/jhillyerd/enmime"
+	"github.com/urfave/cli/v2"
 )
 
 var (
@@ -333,7 +334,7 @@ func SendMessageToChat(
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		return nil, errors.New(fmt.Sprintf(
 			"Non-200 response from Telegram: (%d) %s",
 			resp.StatusCode,
@@ -341,7 +342,7 @@ func SendMessageToChat(
 		))
 	}
 
-	j, err := ioutil.ReadAll(resp.Body)
+	j, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("Error reading json body of sendMessage: %v", err)
 	}
@@ -409,7 +410,7 @@ func SendAttachmentToChat(
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		return errors.New(fmt.Sprintf(
 			"Non-200 response from Telegram: (%d) %s",
 			resp.StatusCode,
