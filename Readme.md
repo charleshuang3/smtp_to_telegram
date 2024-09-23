@@ -5,6 +5,8 @@ This is hard fork from [KostyaEsmukov/smtp_to_telegram](https://github.com/Kosty
 Great Thanks to KostyaEsmukov. I fork this project because I need to add feature to also want to start a local http
 server to send message to telegarm so that I don't need to install 2 container for telegram notification.
 
+[![Go Test](https://github.com/charleshuang3/smtp_to_telegram/actions/workflows/ci.yml/badge.svg)](https://github.com/charleshuang3/smtp_to_telegram/actions/workflows/ci.yml)
+[![GHCR Image](https://github.com/charleshuang3/smtp_to_telegram/actions/workflows/docker-image.yml/badge.svg)](https://github.com/charleshuang3/smtp_to_telegram/actions/workflows/docker-image.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/charleshuang3/smtp_to_telegram?style=flat-square)][Go Report Card]
 [![License](https://img.shields.io/github/license/charleshuang3/smtp_to_telegram.svg?style=flat-square)][License]
 
@@ -32,7 +34,7 @@ docker run \
     --name smtp_to_telegram \
     -e ST_TELEGRAM_CHAT_IDS=<CHAT_ID1>,<CHAT_ID2> \
     -e ST_TELEGRAM_BOT_TOKEN=<BOT_TOKEN> \
-    kostyaesmukov/smtp_to_telegram
+     ghcr.io/charleshuang3/smtp_to_telegram:main
 ```
 
 Assuming that your Email-sending software is running in docker as well,
@@ -53,5 +55,12 @@ docker run \
     -e ST_TELEGRAM_CHAT_IDS=<CHAT_ID1>,<CHAT_ID2> \
     -e ST_TELEGRAM_BOT_TOKEN=<BOT_TOKEN> \
     -e ST_TELEGRAM_MESSAGE_TEMPLATE="Subject: {subject}\\n\\n{body}" \
-    kostyaesmukov/smtp_to_telegram
+    ghcr.io/charleshuang3/smtp_to_telegram:main
+```
+
+You can also use `smtp_to_telegram:2526` to send message to telegram via http.
+For example:
+
+```
+curl http://smtp_to_telegram:2526?subject=test&body=test
 ```
