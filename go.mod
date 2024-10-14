@@ -8,7 +8,7 @@ require (
 	github.com/jhillyerd/enmime v1.3.0
 	github.com/phires/go-guerrilla v1.6.6
 	github.com/stretchr/testify v1.9.0
-	github.com/urfave/cli/v2 v2.27.4
+	github.com/urfave/cli/v2 v2.27.5
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 )
 
