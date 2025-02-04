@@ -4,7 +4,7 @@ go 1.23.1
 
 require (
 	github.com/docker/go-units v0.5.0
-	github.com/go-chi/chi/v5 v5.1.0
+	github.com/go-chi/chi/v5 v5.2.1
 	github.com/jhillyerd/enmime v1.3.0
 	github.com/phires/go-guerrilla v1.6.6
 	github.com/stretchr/testify v1.9.0
